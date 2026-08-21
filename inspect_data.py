@@ -1,6 +1,6 @@
 import pandas as pd
 
-df=pd.read_csv("data/machine_failure.csv")
+df=pd.read_csv("data/ai4i2020.csv")
 
 print("Shape:")
 print(df.shape)
