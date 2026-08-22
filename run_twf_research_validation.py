@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
+import joblib
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix,classification_report,accuracy_score,precision_score,recall_score,f1_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV, cross_val_predict
+
 
 df=pd.read_csv("data/ai4i2020.csv")
 df.drop(['UDI','Product ID'],axis=1,inplace=True)
@@ -280,3 +282,14 @@ plt.legend()
 plt.grid(True)
 
 plt.show()
+
+
+artifact={
+    "model":final_model,
+    "encoder":le,
+    "threshold":best_threshold,
+    "feature_order":list(X_train.columns),
+    "sklearn_version":__import__("sklearn").__version__,
+}
+
+joblib.dump(artifact,"app/twf_model.joblib")
