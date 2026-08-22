@@ -5,7 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix,classification_report,accuracy_score,precision_score,recall_score,f1_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, cross_val_predict
 
 df=pd.read_csv("data/ai4i2020.csv")
 df.drop(['UDI','Product ID'],axis=1,inplace=True)
@@ -22,26 +22,16 @@ failure_cols=["Machine failure","HDF","PWF","OSF","RNF"]
 X=df.drop(columns=failure_cols +[target])
 y=df[target]
 
-X_train,X_temp,y_train,y_temp=train_test_split(X,y,test_size=0.3,random_state=42,stratify=y)
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.3,random_state=42,stratify=y)
 
-X_val, X_test, y_val, y_test = train_test_split(
-    X_temp,
-    y_temp,
-    test_size=0.50,
-    random_state=42,
-    stratify=y_temp
-)
 
 print("Training set:",X_train.shape)
-print("Validation set:",X_val.shape)
 print("Test set:",X_test.shape)
 
 print("\n TWF distribution:")
 print("Train:")
 print(y_train.value_counts())
 
-print("\nValidation:")
-print(y_val.value_counts())
 
 
 print("\n Test:")
@@ -49,32 +39,48 @@ print(y_test.value_counts())
 
 model=RandomForestClassifier(
     class_weight='balanced',
-    min_samples_leaf=5,
-    max_features=5,
-    random_state=42,
-    n_jobs=-1,
-    verbose=1
+    random_state=42
 )
 
 param_grid={
-    "n_estimators":[100,200,300],
-    "max_depth":[3,5,10],
-    "min_samples_split":[2,5]
+    "n_estimators":[200,300,500],
+    "max_depth":[None,3,5,10],
+    "min_samples_split":[2,5],
+    "min_samples_leaf":[1,2,5,10],
+    "max_features":["sqrt","log2",None]
 }
 grid=GridSearchCV(
     model,
     param_grid,
     cv=5,
-    scoring="f1"
+    scoring="f1",
+    n_jobs=-1,
+    verbose=2,
+    return_train_score=True
 )
 grid.fit(X_train,y_train)
 
 print(f"Best params: {grid.best_params_}")
 print(f"Best CV F1: {grid.best_score_}")
-best_model=grid.best_estimator_
+final_model=grid.best_estimator_
 
-for feature,importance in zip(X.columns,best_model.feature_importances_):
-    print(feature,importance)
+cv_model=RandomForestClassifier(
+    **grid.best_params_,
+    class_weight="balanced",
+    random_state=42,
+    n_jobs=-1
+)
+
+train_probs_cv=cross_val_predict(
+    cv_model,
+    X_train,
+    y_train,
+    cv=5,
+    method="predict_proba",
+    n_jobs=-1
+)[:,1]
+
+
 
 def evaluate_model(y_true,probs,threshold=0.5,name="Model"):
     preds=(probs>=threshold).astype(int)
@@ -102,25 +108,10 @@ def evaluate_model(y_true,probs,threshold=0.5,name="Model"):
     return preds, (tn,fp,fn,tp)
 
 
-val_probs=best_model.predict_proba(X_val)[:,1]
-test_probs=best_model.predict_proba(X_test)[:,1]
-
-evaluate_model(
-    y_val,
-    val_probs,
-    threshold=0.5,
-    name="VALIDATION SET - DEFAULT MODEL"
-)
-
-evaluate_model(
-    y_test,
-    test_probs,
-    threshold=0.5,
-    name="TEST SET - DEFAULT MODEL"
-)
 
 
-FN_COST=5000
+
+FN_COST=15000
 FP_COST=500
 
 def calculate_cost(y_true,preds):
@@ -134,29 +125,38 @@ def calculate_cost(y_true,preds):
 
     return total_cost,tn,fp,fn,tp
 
-thresholds= np.arange(0.01,1.00,0.01)
 
-validation_costs=[]
+thresholds=np.arange(0.01,1.0,0.01)
 
-best_threshold= 0.5
+cv_costs=[]
+
+best_threshold=0.5
+
 best_cost=float("inf")
 
 for threshold in thresholds:
-    val_preds=(val_probs>=threshold).astype(int)
-    cost,tn,fp,fn,tp=calculate_cost(y_val,val_preds)
+    cv_preds=(
+        train_probs_cv>=threshold
+    ).astype(int)
 
-    validation_costs.append(cost)
+    cost,tn,fp,fn,tp= calculate_cost(
+        y_train,
+        cv_preds
+    )
+
+    cv_costs.append(cost)
 
     if cost< best_cost:
         best_cost=cost
         best_threshold=threshold
 
-print("\n" + "=" * 50)
-print("VALIDATION THRESHOLD OPTIMIZATION")
-print("=" * 50)
+
+print("\n"+"="*50)
+print("CROSS-VALIDATED THRESHOLD OPTIMIZATION")
+print("="*50)
 
 print(f"Best Threshold: {best_threshold:.2f}")
-print(f"Minimum Validation Cost: ${best_cost:,}")
+print(f"Minimum Cross-Validated Cost: ${best_cost:,}")
 
 # ==========================================
 # FINAL TEST SET EVALUATION
@@ -164,8 +164,27 @@ print(f"Minimum Validation Cost: ${best_cost:,}")
 
 optimized_threshold = best_threshold
 
+test_probs=final_model.predict_proba(X_test)[:,1]
+
+
 # Default predictions
 test_preds_default = (test_probs >= 0.5).astype(int)
+
+
+
+evaluate_model(
+    y_test,
+    test_probs,
+    threshold=0.5,
+    name="TEST SET - DEFAULT MODEL"
+)
+
+
+evaluate_model(
+    y_test,test_probs,
+    threshold=best_threshold,
+    name="TEST SET - COST-OPTIMIZED THRESHOLD"
+)
 
 # Optimized predictions
 test_preds_optimized = (
@@ -236,7 +255,7 @@ plt.figure(figsize=(10,6))
 
 plt.plot(
     thresholds,
-    validation_costs,
+    cv_costs,
     linewidth=2
 )
 
@@ -253,8 +272,8 @@ plt.axvline(
 )
 
 plt.xlabel("Decision Threshold")
-plt.ylabel("Validation Cost ($)")
-plt.title("Cost-Aware Threshold Optimization for Tool Wear Failure")
+plt.ylabel("Cross-Validation Cost ($)")
+plt.title("Cross-validated Cost-Aware Threshold Optimization for Tool Wear Failure")
 plt.legend()
 plt.grid(True)
 
