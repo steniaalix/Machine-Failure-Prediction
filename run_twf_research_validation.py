@@ -167,11 +167,6 @@ optimized_threshold = best_threshold
 test_probs=final_model.predict_proba(X_test)[:,1]
 
 
-# Default predictions
-test_preds_default = (test_probs >= 0.5).astype(int)
-
-
-
 evaluate_model(
     y_test,
     test_probs,
@@ -185,6 +180,13 @@ evaluate_model(
     threshold=best_threshold,
     name="TEST SET - COST-OPTIMIZED THRESHOLD"
 )
+
+
+# Default predictions
+test_preds_default = (test_probs >= 0.5).astype(int)
+
+
+
 
 # Optimized predictions
 test_preds_optimized = (
