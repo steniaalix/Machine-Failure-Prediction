@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel,Field
 from typing import Literal
 import joblib
@@ -7,6 +8,14 @@ import pandas as pd
 app=FastAPI(title="Cost-Aware Tool Wear Failure Prediction API",
             description=("An ML API that predicts Tool Wear Failure using a Random Forest model and a cost-optimized threshold"),
             version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 artifact=joblib.load("app/twf_model.joblib")
@@ -115,8 +124,8 @@ def model_info():
         )
     }
 
-@app.post("/predict/twf",response_model=response_template)
-
+@app.post("/predict", response_model=response_template)
+@app.post("/predict/twf", response_model=response_template)
 def predict_twf(data:input_template):
 
     try:
