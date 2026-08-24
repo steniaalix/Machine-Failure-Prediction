@@ -29,8 +29,12 @@ export default function Header({ status, onCheckConnection }) {
           </svg>
           
           <div className="header-titles">
-            <h1 className="header-title">Machine Failure Predictor</h1>
-            <span className="header-subtitle">AI-powered Tool Wear Failure Prediction</span>
+            <h1 className="header-title" style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.02em' }}>
+              Machine Failure Prediction System
+            </h1>
+            <span className="header-subtitle" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              AI-Powered Predictive Maintenance
+            </span>
           </div>
         </div>
 
