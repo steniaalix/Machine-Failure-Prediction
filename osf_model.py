@@ -18,9 +18,9 @@ le=LabelEncoder()
 
 df['Type']=le.fit_transform(df['Type'])
 
-target="HDF"
+target="OSF"
 
-failure_cols=["Machine failure","PWF","OSF","RNF","TWF"]
+failure_cols=["Machine failure","HDF","TWF","PWF","RNF"]
 X=df.drop(columns=failure_cols +[target])
 y=df[target]
 
@@ -30,7 +30,7 @@ X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.3,random_state=42
 print("Training set:",X_train.shape)
 print("Test set:",X_test.shape)
 
-print("\n HDF distribution:")
+print("\n OSF distribution:")
 print("Train:")
 print(y_train.value_counts())
 
@@ -277,7 +277,7 @@ plt.axvline(
 
 plt.xlabel("Decision Threshold")
 plt.ylabel("Cross-Validation Cost ($)")
-plt.title("Cross-validated Cost-Aware Threshold Optimization for Heat Dissipation Failure")
+plt.title("Cross-validated Cost-Aware Threshold Optimization for Over Strain Failure")
 plt.legend()
 plt.grid(True)
 
@@ -292,5 +292,5 @@ artifact={
     "sklearn_version":__import__("sklearn").__version__,
 }
 
-joblib.dump(artifact,"app/hdf_model.joblib")
+joblib.dump(artifact,"app/osf_model.joblib")
 

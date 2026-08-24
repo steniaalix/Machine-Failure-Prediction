@@ -18,9 +18,9 @@ le=LabelEncoder()
 
 df['Type']=le.fit_transform(df['Type'])
 
-target="HDF"
+target="PWF"
 
-failure_cols=["Machine failure","PWF","OSF","RNF","TWF"]
+failure_cols=["Machine failure","HDF","TWF","OSF","RNF"]
 X=df.drop(columns=failure_cols +[target])
 y=df[target]
 
@@ -277,7 +277,7 @@ plt.axvline(
 
 plt.xlabel("Decision Threshold")
 plt.ylabel("Cross-Validation Cost ($)")
-plt.title("Cross-validated Cost-Aware Threshold Optimization for Heat Dissipation Failure")
+plt.title("Cross-validated Cost-Aware Threshold Optimization for Power Failure")
 plt.legend()
 plt.grid(True)
 
@@ -292,5 +292,5 @@ artifact={
     "sklearn_version":__import__("sklearn").__version__,
 }
 
-joblib.dump(artifact,"app/hdf_model.joblib")
+joblib.dump(artifact,"app/pwf_model.joblib")
 

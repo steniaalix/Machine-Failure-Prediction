@@ -57,6 +57,7 @@ grid=GridSearchCV(
     cv=5,
     scoring="f1",
     n_jobs=-1,
+    verbose=2,
     return_train_score=True
 )
 grid.fit(X_train,y_train)
