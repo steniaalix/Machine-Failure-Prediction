@@ -20,7 +20,7 @@ df['Type']=le.fit_transform(df['Type'])
 
 target="HDF"
 
-failure_cols=["Machine failure","HDF","PWF","OSF","RNF"]
+failure_cols=["Machine failure","PWF","OSF","RNF","TWF"]
 X=df.drop(columns=failure_cols +[target])
 y=df[target]
 
